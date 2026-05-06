@@ -7,6 +7,13 @@ const selected = ref<any | null>(null);
 
 const newEra = ref({ name: "", description: "", image: "" });
 
+const deleteModal = ref({
+  isOpen: false,
+  eraId: null as string | null,
+  eraName: "",
+  isDeleting: false
+});
+
 async function load() {
   const res = await api.get("/eras");
 
@@ -26,10 +33,37 @@ async function create() {
   await load();
 }
 
-async function remove(id: string) {
-  if (!confirm("Excluir era?")) return;
-  await api.delete(`/eras/${id}`);
-  eras.value = eras.value.filter(e => e.id !== id);
+function openDeleteModal(id: string, name: string) {
+  deleteModal.value = {
+    isOpen: true,
+    eraId: id,
+    eraName: name,
+    isDeleting: false
+  };
+}
+
+function closeDeleteModal() {
+  deleteModal.value.isOpen = false;
+  setTimeout(() => {
+    deleteModal.value.eraId = null;
+    deleteModal.value.eraName = "";
+    deleteModal.value.isDeleting = false;
+  }, 300);
+}
+
+async function confirmDelete() {
+  if (!deleteModal.value.eraId) return;
+
+  deleteModal.value.isDeleting = true;
+
+  try {
+    await api.delete(`/eras/${deleteModal.value.eraId}`);
+    eras.value = eras.value.filter(e => e.id !== deleteModal.value.eraId);
+    closeDeleteModal();
+  } catch (err) {
+    console.error(err);
+    deleteModal.value.isDeleting = false;
+  }
 }
 
 function openEdit(era: any) {
@@ -127,12 +161,47 @@ async function saveEdit() {
 
         <div class="actions">
           <button class="btn btn-edit" @click="openEdit(e)">Editar</button>
-          <button class="btn btn-delete" @click="remove(e.id)">Excluir</button>
+          <button class="btn btn-delete" @click="openDeleteModal(e.id, e.name)">
+            Excluir
+          </button>
         </div>
       </div>
     </div>
 
     <p v-if="!eras.length" class="empty">Nenhuma era encontrada 🦴</p>
+
+    <Transition name="fade-scale">
+  <div v-if="deleteModal.isOpen" class="confirm-overlay" @click.self="closeDeleteModal">
+    <div class="confirm-modal">
+
+      <div class="confirm-header">
+        <div class="confirm-icon">⚠️</div>
+        <h3>Confirmar Exclusão</h3>
+      </div>
+
+      <div class="confirm-body">
+        <p>Deseja excluir a era:</p>
+
+        <strong>{{ deleteModal.eraName }}</strong>
+
+        <p class="confirm-warning">
+          Essa ação não pode ser desfeita.
+        </p>
+      </div>
+
+      <div class="confirm-actions">
+        <button class="btn-cancel" @click="closeDeleteModal">
+          Cancelar
+        </button>
+
+        <button class="btn-delete" @click="confirmDelete">
+          🗑️ Excluir
+        </button>
+      </div>
+
+    </div>
+  </div>
+</Transition>
   </div>
 </template>
 
@@ -506,5 +575,180 @@ input:focus {
 }
 .btn.save:hover {
   background: #c39d2e;
+}
+
+/* =========================
+   CONFIRM DELETE MODAL (ERAS)
+========================= */
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  padding: 20px;
+}
+
+.confirm-modal {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(160deg, #1a150e, #0b0a08);
+  border: 1px solid rgba(212,175,55,0.25);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.9),
+    0 0 60px rgba(212,175,55,0.08),
+    inset 0 1px 0 rgba(212,175,55,0.1);
+  animation: confirmSlideUp 0.4s cubic-bezier(.2,.9,.3,1.2);
+}
+
+@keyframes confirmSlideUp {
+  from {
+    transform: translateY(40px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* HEADER */
+.confirm-header {
+  padding: 26px 24px 16px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255,80,80,0.08), transparent);
+  border-bottom: 1px solid rgba(255,80,80,0.15);
+}
+
+.confirm-icon {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  background: rgba(255,80,80,0.12);
+  border: 2px solid rgba(255,80,80,0.3);
+  box-shadow: 0 0 30px rgba(255,80,80,0.2);
+  animation: pulseWarning 2s infinite;
+}
+
+@keyframes pulseWarning {
+  0%,100% { box-shadow: 0 0 25px rgba(255,80,80,0.2); }
+  50% { box-shadow: 0 0 50px rgba(255,80,80,0.4); }
+}
+
+.confirm-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  color: #ff8a8a;
+}
+
+/* BODY */
+.confirm-body {
+  padding: 22px 26px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.confirm-body p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(245,230,200,0.7);
+}
+
+.confirm-body strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #d4af37;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(212,175,55,0.08);
+  border: 1px solid rgba(212,175,55,0.2);
+}
+
+.confirm-warning {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: rgba(255,138,138,0.7);
+  background: rgba(255,80,80,0.06);
+  border: 1px solid rgba(255,80,80,0.15);
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+/* ACTIONS */
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
+.btn-cancel {
+  flex: 1;
+  padding: 13px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid rgba(245,230,200,0.25);
+  color: rgba(245,230,200,0.8);
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.btn-cancel:hover {
+  background: rgba(245,230,200,0.08);
+  border-color: rgba(245,230,200,0.4);
+}
+
+.btn-delete {
+  flex: 1.3;
+  padding: 13px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #ff5a5a, #c73e3e);
+  color: white;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 0.25s;
+  box-shadow: 0 6px 20px rgba(255,90,90,0.3);
+}
+
+.btn-delete:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(255,90,90,0.5);
+}
+
+/* TRANSITION */
+.fade-scale-enter-active,
+.fade-scale-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-scale-enter-from,
+.fade-scale-leave-to {
+  opacity: 0;
+}
+
+.fade-scale-enter-from .confirm-modal,
+.fade-scale-leave-to .confirm-modal {
+  transform: scale(0.95) translateY(20px);
 }
 </style>

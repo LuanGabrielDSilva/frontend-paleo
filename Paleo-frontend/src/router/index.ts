@@ -1,65 +1,107 @@
 import { createRouter, createWebHistory } from "vue-router";
 
-// 🔓 públicas
+/* ================= LAYOUTS ================= */
+import DefaultLayout from "../layouts/DefaultLayout.vue";
+import AdminLayout from "../layouts/AdminLayout.vue";
+
+/* ================= AUTH ================= */
 import Login from "../views/Login.vue";
 import Register from "../views/Register.vue";
 
-// 🔐 usuário
+/* ================= USER ================= */
 import Home from "../views/Home.vue";
-import Animals from "../views/Animals.vue";
-import Eras from "../views/Eras.vue";
-import Users from "../views/Users.vue";
-import Game from "../views/Game.vue";
+import Profile from "../views/Profile.vue";
 import Collection from "../views/Collection.vue";
+import Eras from "../views/Eras.vue";
+import EraDetailsView from "../views/EraDetailsView.vue";
+import Users from "../views/Users.vue";
+import SaibaMais from "../views/SaibaMais.vue";
+import Game from "../views/Game.vue";
+import WalletView from "../views/WalletView.vue";
 
-// 👑 ADMIN
-import AdminLayout from "../layouts/AdminLayout.vue";
+/* ================= SHOP ================= */
+import Shop from "../views/shop/Shop.vue";
+import Inventory from "../views/shop/Inventory.vue";
+import Checkout from "../views/shop/Checkout.vue";
+
+/* ================= GAMES ================= */
+import DinoClickerView from "../views/games/DinoClickerView.vue";
+import MemoryGame from "../views/games/MemoryGame.vue";
+import QuizGame from "../views/games/QuizGame.vue";
+
+/* ================= ERAS ================= */
+import Mesozoico from "../views/eras/Mesozoico.vue";
+import Paleozoico from "../views/eras/Paleozoico.vue";
+import Cenozoico from "../views/eras/Cenozoico.vue";
+
+/* ================= ADMIN ================= */
 import AdminDashboard from "../views/admin/AdminDashboard.vue";
 import AdminEras from "../views/admin/AdminEras.vue";
 import AdminAnimals from "../views/admin/AdminAnimals.vue";
 import AdminUsers from "../views/admin/AdminUsers.vue";
 import AdminPeriodos from "../views/admin/AdminPeriodos.vue";
 
+/* ================= ROUTES ================= */
+
 const routes = [
-  // 🔓 públicas
-  { path: "/", component: Login },
-  { path: "/login", component: Login },
-  { path: "/register", component: Register },
+  {
+    path: "/",
+    redirect: "/login",
+  },
 
-  // 🔐 usuário
-  { path: "/home", component: Home },
-  { path: "/animals", component: Animals },
-  { path: "/eras", component: Eras },
-  { path: "/users", component: Users },
-  { path: "/game", component: Game },
-  { path: "/collection", component: Collection },
+  /* ================= PUBLIC ================= */
+  {
+    path: "/login",
+    component: Login,
+  },
+  {
+    path: "/register",
+    component: Register,
+  },
 
-  // 👑 ADMIN (CORRETO AGORA)
+  /* ================= USER LAYOUT ================= */
+  {
+    path: "/",
+    component: DefaultLayout,
+    children: [
+
+      { path: "home", component: Home },
+      { path: "profile", component: Profile },
+      { path: "saiba-mais", component: SaibaMais },
+      { path: "animals", component: Collection },
+      { path: "eras", component: Eras },
+      { path: "eras/:id", component: EraDetailsView },
+      { path: "users", component: Users },
+      { path: "game", component: Game },
+      { path: "wallet", component: WalletView },
+
+      /* 🎯 SHOP AQUI DENTRO DO LAYOUT */
+      { path: "shop", component: Shop },
+      { path: "inventory", component: Inventory },
+      { path: "checkout", component: Checkout },
+
+      /* GAMES */
+      { path: "games/dino-clicker", component: DinoClickerView },
+      { path: "games/memory-game", component: MemoryGame },
+      { path: "games/quiz", component: QuizGame },
+
+      /* ERAS */
+      { path: "eras/mesozoico", component: Mesozoico },
+      { path: "eras/paleozoico", component: Paleozoico },
+      { path: "eras/cenozoico", component: Cenozoico },
+    ],
+  },
+
+  /* ================= ADMIN ================= */
   {
     path: "/admin",
     component: AdminLayout,
-    meta: { admin: true },
     children: [
-      {
-        path: "",
-        component: AdminDashboard,
-      },
-      {
-        path: "eras",
-        component: AdminEras,
-      },
-      {
-        path: "animals",
-        component: AdminAnimals,
-      },
-      {
-        path: "users",
-        component: AdminUsers,
-      },
-      {
-      path: "/admin/periodos",
-      component: AdminPeriodos
-    },
+      { path: "", component: AdminDashboard },
+      { path: "eras", component: AdminEras },
+      { path: "animals", component: AdminAnimals },
+      { path: "users", component: AdminUsers },
+      { path: "periodos", component: AdminPeriodos },
     ],
   },
 ];
@@ -67,26 +109,4 @@ const routes = [
 export const router = createRouter({
   history: createWebHistory(),
   routes,
-});
-
-// 🔐 PROTEÇÃO GLOBAL
-router.beforeEach((to) => {
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-  // públicas
-  if (["/", "/login", "/register"].includes(to.path)) {
-    if (token) return "/home";
-    return true;
-  }
-
-  // sem login
-  if (!token) return "/login";
-
-  // admin protection
-  if (to.path.startsWith("/admin")) {
-    if (user.role !== "admin") return "/home";
-  }
-
-  return true;
 });

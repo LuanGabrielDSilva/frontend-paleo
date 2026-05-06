@@ -10,6 +10,34 @@ const eras = ref<any[]>([]);
 const selected = ref<any | null>(null);
 const selectedEra = ref<string>("");
 
+/* CONFIRMAÇÃO DE EXCLUSÃO */
+const deleteModal = ref({
+  isOpen: false,
+  periodoId: null as string | null,
+  periodoName: "",
+  isDeleting: false
+});
+
+const ordemPeriodos = [
+  // Paleozoico
+  "Cambriano",
+  "Ordoviciano",
+  "Siluriano",
+  "Devoniano",
+  "Carbonífero",
+  "Permiano",
+
+  // Mesozoico
+  "Triássico",
+  "Jurássico",
+  "Cretáceo",
+
+  // Cenozoico
+  "Paleógeno",
+  "Neógeno",
+  "Quaternário"
+];
+
 const newPeriodo = ref({
   name: "",
   description: "",
@@ -43,11 +71,25 @@ watch(selectedEra, () => {
 
 const grouped = computed(() => {
   const map: Record<string, any[]> = {};
+
   periodos.value.forEach(p => {
     const eraName = p.era?.name || "Sem Era";
+
     if (!map[eraName]) map[eraName] = [];
+
     map[eraName].push(p);
   });
+
+  // ordenar os períodos dentro de cada era
+  Object.keys(map).forEach(era => {
+    map[era].sort((a, b) => {
+      return (
+        ordemPeriodos.indexOf(a.name) -
+        ordemPeriodos.indexOf(b.name)
+      );
+    });
+  });
+
   return map;
 });
 
@@ -58,10 +100,40 @@ async function create() {
   await load();
 }
 
-async function remove(id: string) {
-  if (!confirm("Excluir período?")) return;
-  await api.delete(`/periodos/${id}`);
-  periodos.value = periodos.value.filter(p => p.id !== id);
+/* =========================
+   DELETE CONFIRMATION
+========================= */
+function openDeleteModal(id: string, name: string) {
+  deleteModal.value = {
+    isOpen: true,
+    periodoId: id,
+    periodoName: name,
+    isDeleting: false
+  };
+}
+
+function closeDeleteModal() {
+  deleteModal.value.isOpen = false;
+  setTimeout(() => {
+    deleteModal.value.periodoId = null;
+    deleteModal.value.periodoName = "";
+    deleteModal.value.isDeleting = false;
+  }, 300);
+}
+
+async function confirmDelete() {
+  if (!deleteModal.value.periodoId) return;
+  
+  deleteModal.value.isDeleting = true;
+  
+  try {
+    await api.delete(`/periodos/${deleteModal.value.periodoId}`);
+    periodos.value = periodos.value.filter(p => p.id !== deleteModal.value.periodoId);
+    closeDeleteModal();
+  } catch (err) {
+    console.error("Erro ao excluir:", err);
+    deleteModal.value.isDeleting = false;
+  }
 }
 
 function openEdit(p: any) {
@@ -153,54 +225,52 @@ async function saveEdit() {
       </button>
     </section>
 
-    <!-- ====== LISTA POR ERA REFINADA ====== -->
-    <div v-for="(items, era) in grouped" :key="era" class="era-section">
-
+    <!-- ====== SEÇÕES POR ERA ====== -->
+    <section v-for="(items, era) in grouped" :key="era" class="era-section">
       <div class="era-header">
         <div class="era-marker"></div>
         <div class="era-titles">
           <span class="era-eyebrow">Era Geológica</span>
           <h2>{{ era }}</h2>
         </div>
-        <span class="era-count">{{ items.length }} período{{ items.length > 1 ? 's' : '' }}</span>
+        <div class="era-count">
+          {{ items.length }} período{{ items.length > 1 ? 's' : '' }}
+        </div>
       </div>
 
       <div class="grid">
-        <article v-for="p in items" :key="p.id" class="card">
-
+        <div v-for="p in items" :key="p.id" class="card">
           <div class="card-media">
             <img v-if="p.image" :src="p.image" :alt="p.name" />
             <div v-else class="placeholder">🦴</div>
-            <span class="card-badge">{{ era }}</span>
             <div class="card-shadow"></div>
+            <div class="card-badge">{{ era }}</div>
           </div>
-
           <div class="card-body">
             <h3>{{ p.name }}</h3>
             <p class="card-desc">{{ p.description || 'Sem descrição disponível.' }}</p>
           </div>
-
           <div class="card-footer">
             <button class="btn edit" @click="openEdit(p)">✏️ Editar</button>
-            <button class="btn danger" @click="remove(p.id)">🗑️ Excluir</button>
+            <button class="btn danger" @click="openDeleteModal(p.id, p.name)">🗑️ Excluir</button>
           </div>
-
-        </article>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div v-if="!periodos.length" class="empty-state">
+    <!-- ====== EMPTY STATE ====== -->
+    <div v-if="periodos.length === 0" class="empty-state">
       <span>🦕</span>
       <p>Nenhum período cadastrado ainda</p>
     </div>
 
-    <!-- ====== MODAL (mantido) ====== -->
+    <!-- ====== MODAL DE EDIÇÃO (mantido) ====== -->
     <div v-if="selected" class="modal-overlay" @click.self="selected = null">
       <div class="modal-museum">
         <div class="catalog-bar">
           <div class="catalog-tag">
             <span class="catalog-dot"></span>
-            <span>FICHA Nº {{ selected.id?.slice(0, 6).toUpperCase() || '------' }}</span>
+            FICHA Nº {{ selected.id?.slice(0, 6).toUpperCase() || '------' }}
           </div>
           <button class="close-x" @click="selected = null">✕</button>
         </div>
@@ -208,7 +278,7 @@ async function saveEdit() {
         <div class="museum-body">
           <div class="museum-preview">
             <div class="preview-frame">
-              <img v-if="selected.image" :src="selected.image" :alt="selected.name" />
+              <img v-if="selected.image" :src="selected.image" />
               <div v-else class="preview-empty">
                 <span>🦴</span>
                 <small>Sem imagem</small>
@@ -231,7 +301,7 @@ async function saveEdit() {
 
             <div class="museum-field">
               <label>Descrição</label>
-              <textarea v-model="selected.description" rows="3"></textarea>
+              <input v-model="selected.description" />
             </div>
 
             <div class="museum-field">
@@ -257,6 +327,45 @@ async function saveEdit() {
         </div>
       </div>
     </div>
+
+    <!-- ====== MODAL DE CONFIRMAÇÃO DE EXCLUSÃO ====== -->
+    <Transition name="fade-scale">
+      <div v-if="deleteModal.isOpen" class="confirm-overlay" @click.self="closeDeleteModal">
+        <div class="confirm-modal">
+          <div class="confirm-header">
+            <div class="confirm-icon">⚠️</div>
+            <h3>Confirmar Exclusão</h3>
+          </div>
+          
+          <div class="confirm-body">
+            <p class="confirm-message">
+              Você está prestes a excluir permanentemente o período:
+            </p>
+            <div class="confirm-target">
+              <span class="target-icon">🦴</span>
+              <strong>{{ deleteModal.periodoName }}</strong>
+            </div>
+            <p class="confirm-warning">
+              Esta ação não pode ser desfeita. Todos os dados associados serão perdidos.
+            </p>
+          </div>
+
+          <div class="confirm-actions">
+            <button class="btn-cancel" @click="closeDeleteModal" :disabled="deleteModal.isDeleting">
+              Cancelar
+            </button>
+            <button 
+              class="btn-delete" 
+              @click="confirmDelete" 
+              :disabled="deleteModal.isDeleting"
+            >
+              <span v-if="deleteModal.isDeleting" class="spinner"></span>
+              <span v-else>🗑️ Excluir Período</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
   </div>
 </template>
@@ -658,7 +767,7 @@ async function saveEdit() {
   color: rgba(245,230,200,0.5);
 }
 
-/* ===== MODAL (mantido) ===== */
+/* ===== MODAL DE EDIÇÃO (mantido) ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -876,6 +985,207 @@ async function saveEdit() {
 .btn-gold .arrow { transition: transform 0.25s ease; }
 .btn-gold:hover .arrow { transform: translateX(4px); }
 
+/* =========================
+   MODAL DE CONFIRMAÇÃO DE EXCLUSÃO - NOVO ESTILO
+========================= */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.confirm-modal {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(160deg, #1a150e, #0b0a08);
+  border: 1px solid rgba(212,175,55,0.25);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 
+    0 30px 80px rgba(0,0,0,0.9),
+    0 0 60px rgba(212,175,55,0.08),
+    inset 0 1px 0 rgba(212,175,55,0.1);
+  animation: confirmSlideUp 0.4s cubic-bezier(.2,.9,.3,1.2);
+}
+
+@keyframes confirmSlideUp {
+  from { transform: translateY(40px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.confirm-header {
+  padding: 28px 24px 18px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255,80,80,0.08), transparent);
+  border-bottom: 1px solid rgba(255,80,80,0.15);
+}
+
+.confirm-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  background: rgba(255,80,80,0.12);
+  border: 2px solid rgba(255,80,80,0.3);
+  box-shadow: 0 0 30px rgba(255,80,80,0.2);
+  animation: pulseWarning 2s ease-in-out infinite;
+}
+
+@keyframes pulseWarning {
+  0%, 100% { box-shadow: 0 0 30px rgba(255,80,80,0.2); }
+  50% { box-shadow: 0 0 50px rgba(255,80,80,0.4); }
+}
+
+.confirm-header h3 {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 1.3rem;
+  letter-spacing: 2px;
+  color: #ff8a8a;
+}
+
+.confirm-body {
+  padding: 24px 28px;
+  text-align: center;
+}
+
+.confirm-message {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+  color: rgba(245,230,200,0.7);
+  line-height: 1.5;
+}
+
+.confirm-target {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 18px;
+  margin: 0 0 16px;
+  border-radius: 12px;
+  background: rgba(212,175,55,0.08);
+  border: 1px solid rgba(212,175,55,0.2);
+}
+
+.target-icon {
+  font-size: 1.4rem;
+}
+
+.confirm-target strong {
+  font-family: 'Cinzel', serif;
+  font-size: 1.1rem;
+  color: #d4af37;
+  letter-spacing: 1px;
+}
+
+.confirm-warning {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(255,80,80,0.06);
+  border: 1px solid rgba(255,80,80,0.15);
+  font-size: 0.8rem;
+  font-style: italic;
+  color: rgba(255,138,138,0.7);
+  line-height: 1.4;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
+.btn-cancel {
+  flex: 1;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid rgba(245,230,200,0.25);
+  color: rgba(245,230,200,0.8);
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: rgba(245,230,200,0.08);
+  border-color: rgba(245,230,200,0.4);
+}
+
+.btn-delete {
+  flex: 1.3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #ff5a5a, #c73e3e);
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 6px 20px rgba(255,90,90,0.3);
+}
+
+.btn-delete:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(255,90,90,0.5);
+}
+
+.btn-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Transições */
+.fade-scale-enter-active,
+.fade-scale-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-scale-enter-from,
+.fade-scale-leave-to {
+  opacity: 0;
+}
+
+.fade-scale-enter-from .confirm-modal,
+.fade-scale-leave-to .confirm-modal {
+  transform: scale(0.95) translateY(20px);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 800px) {
   .page-header { flex-direction: column; text-align: center; }
@@ -883,5 +1193,7 @@ async function saveEdit() {
   .museum-body { grid-template-columns: 1fr; }
   .museum-preview { border-right: none; border-bottom: 1px solid rgba(212,175,55,0.15); }
   .preview-frame { aspect-ratio: 16/9; }
+  .confirm-actions { flex-direction: column; }
+  .btn-delete, .btn-cancel { flex: 1; }
 }
 </style>

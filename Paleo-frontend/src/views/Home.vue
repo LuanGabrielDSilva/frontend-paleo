@@ -1,12 +1,7 @@
 <template>
   <div class="page">
-
-    <button class="logout-btn" @click="logout">
-    Sair
-  </button>
     <!-- HERO -->
     <section class="hero">
-
       <!-- Partículas de poeira flutuantes -->
       <div class="particles">
         <span
@@ -26,71 +21,39 @@
 
       <!-- Conteúdo do Hero -->
       <div class="hero-content">
-
         <div class="hero-pre-title anim" style="animation-delay: 0.2s">
           <span class="line-deco" />
           <span class="pre-label">DESDE OS PRIMÓRDIOS</span>
           <span class="line-deco" />
         </div>
-
         <h1 class="hero-title anim" style="animation-delay: 0.4s">
           <span class="gold-text">PALEONTOLOGIA</span><br />
           <span class="hero-sub-title">A ARTE DOS FÓSSEIS</span>
         </h1>
-
         <p class="hero-desc anim" style="animation-delay: 0.6s">
           Desvende os segredos de criaturas que caminharam sobre a Terra há milhões de anos.
           Uma jornada através do tempo, gravada em pedra e osso.
         </p>
-
         <div class="hero-buttons anim" style="animation-delay: 0.8s">
-          <router-link to="/eras" class="btn-primary">
+          <router-link to="/animals" class="btn-primary">
             EXPLORAR COLEÇÃO
           </router-link>
-          <router-link to="/game" class="btn-secondary">
-            SAIBA MAIS
-          </router-link>
+       <router-link to="/saiba-mais" class="btn-secondary">
+  SAIBA MAIS
+</router-link>
         </div>
-
       </div>
-      
     </section>
-    
-
-    <!-- NAV -->
-    <section class="quick-nav">
-      <router-link to="/eras" class="nav-card">
-        <span class="nav-icon">⏳</span>
-        <span class="nav-label">Eras Geológicas</span>
-      </router-link>
-      <router-link to="/collection" class="nav-card">
-        <span class="nav-icon">🦖</span>
-        <span class="nav-label">Coleção</span>
-      </router-link>
-      <router-link to="/game" class="nav-card">
-        <span class="nav-icon">🎮</span>
-        <span class="nav-label">Jogo</span>
-      </router-link>
-    </section>
-
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from "vue-router";
 
-const router = useRouter();
-
-function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user"); // 🔥 ESSENCIAL
-
-  router.push("/login");
-
-  // força atualização do estado
-  window.location.reload();
-}
+import excavationImg from '@/assets/HomeImagem/excavation.jpg'
+import museumImg from '@/assets/HomeImagem/museum.jpg'
+import fossilChartImg from '@/assets/HomeImagem/GraficoFossil.jpg'
+import animalsImg from '@/assets/HomeImagem/CenaAnimais.jpg'
 
 const particles = ref(
   Array.from({ length: 30 }, (_, i) => ({
@@ -107,72 +70,26 @@ const particles = ref(
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap');
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-/* ══════════════════════════════════════
-   VARIÁVEIS — dentro de .page (NÃO :root)
-   para funcionar com <style scoped>
-   ══════════════════════════════════════ */
 .page {
   --bg: hsl(30, 20%, 5%);
   --fg: hsl(36, 50%, 88%);
-  --card-bg: hsl(30, 18%, 8%);
-  --muted: hsl(36, 20%, 55%);
-  --border-clr: hsl(36, 25%, 18%);
   --gold: hsl(36, 60%, 50%);
   --gold-light: hsl(40, 70%, 70%);
-  --gold-dark: hsl(32, 50%, 30%);
-  --bronze: hsl(25, 40%, 35%);
-  --accent: hsl(36, 60%, 50%);
-
+ 
   min-height: 100vh;
-  width: 100%;
-  margin: 0;
-  padding: 0;
   background: var(--bg);
   color: var(--fg);
   font-family: 'Cormorant Garamond', serif;
   overflow-x: hidden;
+  position: relative;
 }
 
-/* ══════════════════════════════════════
-   GOLD TEXT — gradiente igual ao modelo
-   ══════════════════════════════════════ */
-.gold-text {
-  background: linear-gradient(
-    135deg,
-    hsl(45, 50%, 55%) 0%,
-    hsl(40, 60%, 45%) 25%,
-    hsl(36, 50%, 35%) 50%,
-    hsl(40, 55%, 45%) 75%,
-    hsl(45, 50%, 55%) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
-  font-weight: 900;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
-}
-
-.line-deco {
-  display: inline-block;
-  width: 60px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  vertical-align: middle;
-}
-
-/* ══════════════════════════════════════
-   HERO
-   ══════════════════════════════════════ */
+/* ====================== HERO ====================== */
 .hero {
   position: relative;
   width: 100vw;
   height: 100vh;
   min-height: 100vh;
-  margin: 0;
-  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,7 +97,6 @@ const particles = ref(
   background: url("/src/assets/hero-bg.jpg") center/cover no-repeat;
 }
 
-/* Overlay de cima pra baixo — suave como no modelo */
 .hero::before {
   content: '';
   position: absolute;
@@ -194,10 +110,8 @@ const particles = ref(
     hsla(30, 20%, 5%, 0.50) 75%,
     hsla(30, 20%, 5%, 0.95) 100%
   );
-  pointer-events: none;
 }
 
-/* Overlay lateral — escurece bordas */
 .hero::after {
   content: '';
   position: absolute;
@@ -210,7 +124,6 @@ const particles = ref(
     transparent 70%,
     hsla(30, 20%, 5%, 0.70)
   );
-  pointer-events: none;
 }
 
 /* Partículas */
@@ -228,7 +141,7 @@ const particles = ref(
   animation: dust-kf ease-in-out infinite;
 }
 
-/* Conteúdo */
+/* Conteúdo do Hero */
 .hero-content {
   position: relative;
   z-index: 10;
@@ -237,13 +150,11 @@ const particles = ref(
   max-width: 820px;
 }
 
-/* Animação reveal */
 .anim {
   opacity: 0;
   animation: reveal-up 0.8s ease-out forwards;
 }
 
-/* "DESDE OS PRIMÓRDIOS" */
 .hero-pre-title {
   display: flex;
   align-items: center;
@@ -260,7 +171,6 @@ const particles = ref(
   color: hsla(36, 60%, 55%, 0.85);
 }
 
-/* Título principal */
 .hero-title {
   font-family: 'Cinzel Decorative', serif;
   font-size: clamp(2.8rem, 7vw, 5.5rem);
@@ -271,17 +181,31 @@ const particles = ref(
   letter-spacing: -0.02em;
 }
 
-/* Subtítulo "A ARTE DOS FÓSSEIS" */
+.gold-text {
+  background: linear-gradient(
+    135deg,
+    hsl(45, 50%, 55%) 0%,
+    hsl(40, 60%, 45%) 25%,
+    hsl(36, 50%, 35%) 50%,
+    hsl(40, 55%, 45%) 75%,
+    hsl(45, 50%, 55%) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  font-weight: 900;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+}
+
 .hero-sub-title {
   font-family: 'Cinzel', serif;
   font-size: clamp(1.2rem, 3vw, 2.2rem);
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  -webkit-text-fill-color: initial;
   color: hsl(36, 40%, 82%);
 }
 
-/* Descrição */
 .hero-desc {
   font-family: 'Cormorant Garamond', serif;
   font-size: 1.15rem;
@@ -292,7 +216,6 @@ const particles = ref(
   color: hsl(36, 20%, 65%);
 }
 
-/* Botões */
 .hero-buttons {
   display: flex;
   gap: 16px;
@@ -334,78 +257,7 @@ const particles = ref(
   border-color: hsla(36, 60%, 50%, 0.6);
 }
 
-/* ══════════════════════════════════════
-   QUICK NAV
-   ══════════════════════════════════════ */
-.quick-nav {
-  max-width: 900px;
-  margin: 48px auto;
-  padding: 0 20px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-}
-
-.nav-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-clr);
-  border-radius: 8px;
-  padding: 28px 16px;
-  text-align: center;
-  text-decoration: none;
-  color: var(--fg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.4s;
-}
-
-.nav-card:hover {
-  border-color: hsla(36, 60%, 50%, 0.4);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px hsla(36, 60%, 50%, 0.1);
-}
-
-.nav-icon {
-  font-size: 2rem;
-}
-
-.nav-label {
-  font-family: 'Cinzel', serif;
-  font-size: 0.9rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.logout-btn {
-  position: absolute;
-  top: 20px;
-  right: 30px;
-  z-index: 20;
-
-  background: transparent;
-  border: 1px solid hsla(36, 60%, 50%, 0.5);
-  color: var(--fg);
-
-  padding: 10px 20px;
-  font-family: 'Cinzel', serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.logout-btn:hover {
-  background: hsla(36, 60%, 50%, 0.2);
-  border-color: hsla(36, 60%, 50%, 0.8);
-}
-
-/* ══════════════════════════════════════
-   KEYFRAMES
-   ══════════════════════════════════════ */
+/* ====================== ANIMAÇÕES ====================== */
 @keyframes dust-kf {
   0%, 100% { opacity: 0; transform: translateY(0) scale(0); }
   50% { opacity: 1; transform: translateY(-100px) scale(1); }
@@ -421,10 +273,11 @@ const particles = ref(
   50% { box-shadow: 0 0 40px hsla(36, 60%, 50%, 0.3); }
 }
 
-/* ══════════════════════════════════════
-   RESPONSIVE
-   ══════════════════════════════════════ */
+/* ====================== RESPONSIVO ====================== */
 @media (max-width: 640px) {
-  .hero-buttons { flex-direction: column; align-items: center; }
+  .hero-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 </style>

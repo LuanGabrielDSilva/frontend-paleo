@@ -1,7 +1,7 @@
 <template>
   <div class="page">
 
-    <h1>👑 Dashboard Geral</h1>
+    <h1>👑 Painel Geral</h1>
     <p class="subtitle">Visão em tempo real do sistema</p>
 
     <!-- LOADING -->
@@ -27,6 +27,12 @@
         <p>{{ animated.animals }}</p>
       </div>
 
+      <!-- 🔥 NOVO CARD -->
+      <div class="card periodos">
+        <h2>📚 Períodos</h2>
+        <p>{{ animated.periodos }}</p>
+      </div>
+
     </div>
 
   </div>
@@ -38,20 +44,29 @@ import api from "../../services/api";
 
 const loading = ref(true);
 
+/* =========================
+   STATE
+========================= */
 const stats = ref({
   users: 0,
   eras: 0,
-  animals: 0
+  animals: 0,
+  periodos: 0
 });
 
 const animated = reactive({
   users: 0,
   eras: 0,
-  animals: 0
+  animals: 0,
+  periodos: 0
 });
 
-/* ANIMA CONTAGEM */
-function animateCount(key: "users" | "eras" | "animals") {
+const periodos = ref<any[]>([]);
+
+/* =========================
+   ANIMA CONTAGEM
+========================= */
+function animateCount(key: "users" | "eras" | "animals" | "periodos") {
   let start = 0;
   const end = stats.value[key];
 
@@ -65,14 +80,27 @@ function animateCount(key: "users" | "eras" | "animals") {
   }, 40);
 }
 
+/* =========================
+   LOAD DATA
+========================= */
 onMounted(async () => {
   try {
-    const res = await api.get("/admin/stats");
-    stats.value = res.data;
+    const [statsRes, periodosRes] = await Promise.all([
+      api.get("/admin/stats"),
+      api.get("/periodos") // 🔥 pega todos os períodos
+    ]);
+
+    stats.value = {
+      ...statsRes.data,
+      periodos: periodosRes.data.length // 🔥 total real
+    };
+
+    periodos.value = periodosRes.data;
 
     animateCount("users");
     animateCount("eras");
     animateCount("animals");
+    animateCount("periodos"); // 🔥 novo
 
   } finally {
     loading.value = false;
@@ -155,4 +183,5 @@ h1 {
 .users { border-left: 3px solid #4da3ff; }
 .eras { border-left: 3px solid #d4af37; }
 .animals { border-left: 3px solid #ff9f43; }
+.periodos { border-left: 3px solid #8e44ad; } /* 🔥 novo */
 </style>
