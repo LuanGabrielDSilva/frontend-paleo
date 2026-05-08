@@ -1,12 +1,96 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { upgrades as upgradesData } from "@/data/upgrades";
 
-import { onMounted, onUnmounted } from "vue";
+/* =========================================================
+   SAVE SYSTEM
+========================================================= */
+const SAVE_KEY = "paleo_clicker_save";
 
+/* =========================================================
+   STATE
+========================================================= */
+const coins = ref(0);
+const rebirths = ref(0);
+
+const upgrades = ref(
+  upgradesData.map((upgrade) => ({
+    ...upgrade,
+    level: 0,
+  }))
+);
+
+const currentDino = ref("🦖");
+
+const floatingTexts = ref<
+  {
+    id: number;
+    x: number;
+    y: number;
+    value: string;
+  }[]
+>([]);
+
+/* =========================================================
+   LOAD GAME
+========================================================= */
+const loadGame = () => {
+  const data = localStorage.getItem(SAVE_KEY);
+
+  if (!data) return;
+
+  try {
+    const parsed = JSON.parse(data);
+
+    coins.value = parsed.coins ?? 0;
+    rebirths.value = parsed.rebirths ?? 0;
+
+    if (parsed.upgrades) {
+      upgrades.value.forEach((u) => {
+        const saved = parsed.upgrades.find((s: any) => s.id === u.id);
+        if (saved) {
+          u.level = saved.level ?? 0;
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Erro ao carregar save:", err);
+  }
+};
+
+/* =========================================================
+   SAVE GAME
+========================================================= */
+const saveGame = () => {
+  const data = {
+    coins: coins.value,
+    rebirths: rebirths.value,
+    upgrades: upgrades.value.map((u) => ({
+      id: u.id,
+      level: u.level,
+    })),
+  };
+
+  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+};
+
+/* Auto-save (qualquer mudança importante) */
+watch(
+  [coins, rebirths, upgrades],
+  () => {
+    saveGame();
+  },
+  { deep: true }
+);
+
+/* =========================================================
+   GAME LOOP
+========================================================= */
 let interval: any;
 
 onMounted(() => {
+  loadGame();
+
   interval = setInterval(() => {
     coins.value += coinsPerSecond.value;
   }, 1000);
@@ -16,46 +100,55 @@ onUnmounted(() => {
   clearInterval(interval);
 });
 
-const coinsPerSecond = computed(() => {
-
-  const baseCps =
-    upgrades.value.reduce(
-      (total, upgrade) =>
-        total + (upgrade.level * (upgrade.cps || 0)),
-      0
-    );
-
-  return Math.floor(
-    baseCps * rebirthMultiplier.value
-  );
-
+/* =========================================================
+   COMPUTEDS
+========================================================= */
+const rebirthMultiplier = computed(() => {
+  return 1 + rebirths.value * 0.5;
 });
 
-const coinImage = new URL("@/assets/moedaDoSite.png", import.meta.url).href;
+const coinsPerSecond = computed(() => {
+  const baseCps = upgrades.value.reduce(
+    (total, upgrade) =>
+      total + upgrade.level * (upgrade.cps || 0),
+    0
+  );
 
-const coins = ref(0);
+  return Math.floor(baseCps * rebirthMultiplier.value);
+});
 
-const rebirths = ref(0);
+const clickPower = computed(() => {
+  const basePower = upgrades.value.reduce(
+    (total, upgrade) =>
+      total + upgrade.level * upgrade.power,
+    1
+  );
+
+  return Math.floor(basePower * rebirthMultiplier.value);
+});
 
 const rebirthCost = computed(() => {
-  return Math.floor(
-    1000000 * Math.pow(3, rebirths.value)
-  );
+  return Math.floor(1000000 * Math.pow(3, rebirths.value));
 });
 
-const rebirthMultiplier = computed(() => {
-  return 1 + (rebirths.value * 0.5);
+const totalClicks = computed(() => {
+  return Math.floor(coins.value / clickPower.value);
 });
+
+/* =========================================================
+   UTIL
+========================================================= */
+const coinImage = new URL(
+  "@/assets/moedaDoSite.png",
+  import.meta.url
+).href;
+
+const dinos = ref(["🦖", "🦕", "🐊", "🦴"]);
 
 const formatNumber = (value: number | undefined | null) => {
+  if (!value || isNaN(value)) return "0";
 
-  if (value === undefined || value === null || isNaN(value)) {
-    return "0";
-  }
-
-  if (value < 1000) {
-    return Math.floor(value).toString();
-  }
+  if (value < 1000) return Math.floor(value).toString();
 
   const units = [
     "K",
@@ -68,15 +161,12 @@ const formatNumber = (value: number | undefined | null) => {
     "Sp",
     "Oc",
     "No",
-    "Dc"
+    "Dc",
   ];
 
   let unitIndex = -1;
 
-  while (
-    value >= 1000 &&
-    unitIndex < units.length - 1
-  ) {
+  while (value >= 1000 && unitIndex < units.length - 1) {
     value /= 1000;
     unitIndex++;
   }
@@ -84,93 +174,32 @@ const formatNumber = (value: number | undefined | null) => {
   return `${value.toFixed(1)}${units[unitIndex]}`;
 };
 
-const upgrades = ref(
-  upgradesData.map(upgrade => ({
-    ...upgrade
-  }))
-);
-
-const clickPower = computed(() => {
-
-  const basePower =
-    upgrades.value.reduce(
-      (total, upgrade) =>
-        total + (upgrade.level * upgrade.power),
-      1
-    );
-
-  return Math.floor(
-    basePower * rebirthMultiplier.value
-  );
-
-});
-
-const dinos = ref(["🦖", "🦕", "🐊", "🦴"]);
-
-const currentDino = ref("🦖");
-
-const floatingTexts = ref<
-{
-  id: number;
-  x: number;
-  y: number;
-  value: string;
-}[]
->([]);
-
-const totalClicks = computed(() => {
-  return Math.floor(
-    coins.value / clickPower.value
-  );
-});
-
+/* =========================================================
+   UPGRADES
+========================================================= */
 const getUpgradeCost = (upgrade: any) => {
-
   return Math.floor(
-    upgrade.baseCost *
-    Math.pow(1.45, upgrade.level)
+    upgrade.baseCost * Math.pow(1.45, upgrade.level)
   );
-
 };
 
 const buyUpgrade = (upgrade: any) => {
-
-    const rebirth = () => {
-
-  if (coins.value < rebirthCost.value) {
-    return;
-  }
-
-  rebirths.value++;
-
-  coins.value = 0;
-
-  upgrades.value.forEach(upgrade => {
-    upgrade.level = 0;
-  });
-
-};
-
   const cost = getUpgradeCost(upgrade);
 
-  if (coins.value < cost) {
-    return;
-  }
+  if (coins.value < cost) return;
 
   coins.value -= cost;
-
   upgrade.level++;
-
 };
 
+/* =========================================================
+   CLICK SYSTEM
+========================================================= */
 const clickDino = (event: MouseEvent) => {
-
   coins.value += clickPower.value;
 
   currentDino.value =
-    dinos.value[
-      Math.floor(Math.random() * dinos.value.length)
-    ];
+    dinos.value[Math.floor(Math.random() * dinos.value.length)];
 
   const id = Date.now() + Math.random();
 
@@ -178,18 +207,14 @@ const clickDino = (event: MouseEvent) => {
     id,
     x: event.clientX,
     y: event.clientY,
-    value: `+${formatNumber(clickPower.value)}`
+    value: `+${formatNumber(clickPower.value)}`,
   });
 
   setTimeout(() => {
-
-    floatingTexts.value =
-      floatingTexts.value.filter(
-        text => text.id !== id
-      );
-
+    floatingTexts.value = floatingTexts.value.filter(
+      (t) => t.id !== id
+    );
   }, 900);
-
 };
 </script>
 

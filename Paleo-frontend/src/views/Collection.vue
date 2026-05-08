@@ -12,6 +12,53 @@ const selectedPeriodo = ref("");
 const selectedDieta = ref("");
 const loading = ref(true);
 
+/* =========================
+   FAVORITOS
+========================= */
+const favorites = ref<string[]>([]);
+
+const FAVORITES_KEY = "paleo-favorites";
+
+/* carregar favoritos */
+const loadFavorites = () => {
+  try {
+    const saved = localStorage.getItem(FAVORITES_KEY);
+
+    if (saved) {
+      favorites.value = JSON.parse(saved);
+    }
+  } catch (err) {
+    console.error("Erro ao carregar favoritos:", err);
+  }
+};
+
+/* salvar favoritos */
+const saveFavorites = () => {
+  localStorage.setItem(
+    FAVORITES_KEY,
+    JSON.stringify(favorites.value)
+  );
+};
+
+/* verificar favorito */
+const isFavorite = (id: string) => {
+  return favorites.value.includes(id);
+};
+
+/* alternar favorito */
+const toggleFavorite = (animal: any) => {
+  const id = String(animal.id);
+
+  if (isFavorite(id)) {
+    favorites.value = favorites.value.filter((f) => f !== id);
+  } else {
+    favorites.value.push(id);
+  }
+
+  saveFavorites();
+};
+
+
 /* NORMALIZADOR */
 const normalize = (v: string) =>
   (v || "")
@@ -22,13 +69,21 @@ const normalize = (v: string) =>
 
 /* LOAD */
 onMounted(async () => {
+  loadFavorites();
+
   try {
     const [aRes, eRes, pRes] = await Promise.all([
       api.get("/animals"),
       api.get("/eras"),
       api.get("/periodos"),
     ]);
-    animals.value = aRes.data;
+
+    animals.value = aRes.data.map((a: any) => ({
+      ...a,
+      normalizedName: normalize(a.name),
+      normalizedDieta: normalize(a.dieta),
+    }));
+
     eras.value = eRes.data;
     periodos.value = pRes.data;
   } catch (error) {
@@ -56,17 +111,28 @@ const dietasDisponiveis = computed(() => {
 
 const filteredAnimals = computed(() => {
   return animals.value.filter((a) => {
-    const matchSearch = normalize(a.name).includes(normalize(search.value));
+    const matchSearch = a.normalizedName.includes(
+      normalize(search.value)
+    );
+
     const matchEra =
       !selectedEra.value ||
       String(a.periodo?.eraId) === String(selectedEra.value);
+
     const matchPeriodo =
       !selectedPeriodo.value ||
       String(a.periodoId) === String(selectedPeriodo.value);
+
     const matchDieta =
       !selectedDieta.value ||
-      normalize(a.dieta) === normalize(selectedDieta.value);
-    return matchSearch && matchEra && matchPeriodo && matchDieta;
+      a.normalizedDieta === normalize(selectedDieta.value);
+
+    return (
+      matchSearch &&
+      matchEra &&
+      matchPeriodo &&
+      matchDieta
+    );
   });
 });
 
@@ -290,6 +356,13 @@ const eraOf = (a: any) =>
               @click="openAnimal(animal)"
             >
               <span class="card-glow"></span>
+
+              <button
+                class="favorite-btn"
+                @click.stop="toggleFavorite(animal)"
+              >
+                {{ isFavorite(animal.id) ? "★" : "☆" }}
+              </button>
               <div class="card-media">
                 <img
                   v-if="animal.image"
@@ -403,6 +476,16 @@ const eraOf = (a: any) =>
                     ⇲ {{ selectedAnimal.size || "Tamanho —" }}
                   </span>
                   <span class="xchip ghost">{{ eraOf(selectedAnimal) }}</span>
+                  <button
+                  class="favorite-modal"
+                  @click="toggleFavorite(selectedAnimal)"
+                >
+                  {{
+                    isFavorite(selectedAnimal.id)
+                      ? "★ Favoritado"
+                      : "☆ Favoritar"
+                  }}
+                </button>
                 </div>
               </header>
 
@@ -1424,4 +1507,48 @@ const eraOf = (a: any) =>
 .fade-leave-active { transition: opacity .25s ease; }
 .fade-enter-from,
 .fade-leave-to { opacity: 0; }
+
+/* FAVORITO CARD */
+.favorite-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+
+  border: 1px solid rgba(212,175,55,0.35);
+
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+
+  color: #f1d98a;
+  font-size: 1.2rem;
+
+  cursor: pointer;
+
+  transition:
+    transform .2s,
+    background .2s,
+    border-color .2s;
+}
+
+.favorite-btn:hover {
+  transform: scale(1.08);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(212,175,55,0.3),
+      rgba(212,175,55,0.1)
+    );
+
+  border-color: rgba(212,175,55,0.7);
+}
+
+.favorite-btn:active {
+  transform: scale(.92);
+}
 </style>

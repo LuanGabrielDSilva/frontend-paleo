@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import moedaDoSite from "@/assets/moedaDoSite.png";
-
-/* =========================================================
-   API
-========================================================= */
-const API = import.meta.env.VITE_API_URL || "";
+import { questions as questionsData } from "@/data/questions";
 
 /* =========================================================
    TYPES
@@ -13,37 +9,14 @@ const API = import.meta.env.VITE_API_URL || "";
 type Question = {
   question: string;
   options: string[];
-  correct: string;
+  answer: string;
 };
 
 /* =========================================================
    STATE
 ========================================================= */
 const currentQuestion = ref(0);
-
-const questions = ref<Question[]>([
-  {
-    question: "Qual era ficou conhecida como a era dos dinossauros?",
-    options: ["Paleozoico", "Mesozoico", "Cenozoico", "Jurássico"],
-    correct: "Mesozoico"
-  },
-  {
-    question: "Qual criatura voadora viveu no período Cretáceo?",
-    options: ["Tiranossauro", "Pterodáctilo", "Tricerátopo", "Mamute"],
-    correct: "Pterodáctilo"
-  },
-  {
-    question: "Qual destes animais era herbívoro?",
-    options: ["Velociraptor", "Tiranossauro Rex", "Tricerátopo", "Megalodon"],
-    correct: "Tricerátopo"
-  },
-  {
-    question: "Em qual período surgiu o Tiranossauro Rex?",
-    options: ["Triássico", "Jurássico", "Cretáceo", "Cambriano"],
-    correct: "Cretáceo"
-  }
-]);
-
+const questions = ref<Question[]>([]);
 const score = ref(0);
 const finished = ref(false);
 
@@ -53,21 +26,60 @@ const loadingReward = ref(false);
 const selectedAnswer = ref<string | null>(null);
 const answerState = ref<"correct" | "wrong" | null>(null);
 
+/* =========================================================
+   HELPERS
+========================================================= */
+function shuffleArray<T>(arr: T[]) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+/* =========================================================
+   LOAD QUIZ (SAFE)
+========================================================= */
+function loadQuiz() {
+  if (!questionsData || questionsData.length === 0) {
+    questions.value = [];
+    return;
+  }
+
+  const shuffled = shuffleArray(questionsData)
+    .slice(0, 10)
+    .map(q => ({
+      ...q,
+      options: shuffleArray(q.options || [])
+    }));
+
+  questions.value = shuffled;
+}
+
+/* =========================================================
+   PROGRESS (SAFE)
+========================================================= */
 const progress = computed(() => {
-  return ((currentQuestion.value + 1) / questions.value.length) * 100;
+  if (!questions.value.length) return 0;
+
+  return (
+    ((currentQuestion.value + 1) / questions.value.length) * 100
+  );
+});
+
+/* =========================================================
+   CURRENT QUESTION SAFE ACCESS
+========================================================= */
+const current = computed(() => {
+  return questions.value[currentQuestion.value] || null;
 });
 
 /* =========================================================
    ANSWER
 ========================================================= */
 async function answer(option: string) {
+  if (!current.value) return;
   if (selectedAnswer.value) return;
 
   selectedAnswer.value = option;
 
-  const question = questions.value[currentQuestion.value];
-
-  const correct = option === question.correct;
+  const correct = option === current.value.answer;
 
   if (correct) {
     score.value++;
@@ -76,7 +88,7 @@ async function answer(option: string) {
     answerState.value = "wrong";
   }
 
-  await new Promise(resolve => setTimeout(resolve, 1200));
+  await new Promise(resolve => setTimeout(resolve, 900));
 
   selectedAnswer.value = null;
   answerState.value = null;
@@ -90,21 +102,31 @@ async function answer(option: string) {
 }
 
 /* =========================================================
-   FINISH QUIZ + REWARD
+   FINISH QUIZ
+========================================================= */
+/* =========================================================
+   FINISH QUIZ
 ========================================================= */
 async function finishQuiz() {
   const earned = score.value * 25;
 
   coinsEarned.value = earned;
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const API = import.meta.env.VITE_API_URL || "";
 
-  if (!user?.id || !API) return;
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
+
+  if (!user?.id || !API) {
+    console.error("Usuário ou API inválida");
+    return;
+  }
 
   try {
     loadingReward.value = true;
 
-    await fetch(`${API}/reward`, {
+    const response = await fetch(`${API}/reward`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -114,6 +136,12 @@ async function finishQuiz() {
         coins: earned
       })
     });
+
+    if (!response.ok) {
+      throw new Error("Erro ao salvar moedas");
+    }
+
+    console.log("Moedas salvas com sucesso ✅");
 
   } catch (err) {
     console.error("Erro ao recompensar quiz:", err);
@@ -128,18 +156,26 @@ async function finishQuiz() {
 function restartQuiz() {
   currentQuestion.value = 0;
   score.value = 0;
-  coinsEarned.value = 0;
   finished.value = false;
   selectedAnswer.value = null;
   answerState.value = null;
+
+  loadQuiz();
 }
+
+/* =========================================================
+   INIT
+========================================================= */
+onMounted(() => {
+  loadQuiz();
+});
 </script>
 
 <template>
   <div class="quiz-page">
 
-    <!-- BACKGROUND -->
     <div class="bg-glow"></div>
+
     <div class="particles">
       <span v-for="n in 25" :key="n"></span>
     </div>
@@ -152,9 +188,7 @@ function restartQuiz() {
 
         <h1>Quiz Paleontológico</h1>
 
-        <p>
-          Descubra se você domina os mistérios das eras antigas.
-        </p>
+        <p>Descubra se você domina os mistérios das eras antigas.</p>
       </div>
 
       <!-- QUIZ -->
@@ -164,13 +198,8 @@ function restartQuiz() {
         <div class="top-progress">
 
           <div class="progress-info">
-            <span>
-              Pergunta {{ currentQuestion + 1 }}
-            </span>
-
-            <span>
-              {{ questions.length }}
-            </span>
+            <span>Pergunta {{ currentQuestion + 1 }}</span>
+            <span>{{ questions.length }}</span>
           </div>
 
           <div class="progress-bar">
@@ -185,37 +214,39 @@ function restartQuiz() {
         <!-- QUESTION -->
         <Transition name="fade-slide" mode="out-in">
 
-          <div :key="currentQuestion">
+          <div v-if="questions.length > 0" :key="currentQuestion">
 
             <h2 class="question">
-              {{ questions[currentQuestion].question }}
+              {{ questions[currentQuestion]?.question }}
             </h2>
 
             <div class="options">
 
               <button
-                v-for="option in questions[currentQuestion].options"
+                v-for="(option, index) in questions[currentQuestion]?.options"
                 :key="option"
                 class="option-btn"
                 :class="{
-                  correct:
-                    selectedAnswer &&
-                    option === questions[currentQuestion].correct,
+  correct:
+    selectedAnswer &&
+    option === questions[currentQuestion].answer,
 
-                  wrong:
-                    selectedAnswer === option &&
-                    option !== questions[currentQuestion].correct
-                }"
+  wrong:
+    selectedAnswer === option &&
+    option !== questions[currentQuestion].answer
+}"
                 @click="answer(option)"
               >
+
                 <span class="option-text">
+                  {{ ['A', 'B', 'C', 'D'][index] }}.
                   {{ option }}
                 </span>
 
                 <span
                   v-if="
                     selectedAnswer &&
-                    option === questions[currentQuestion].correct
+                    option === questions[currentQuestion].answer
                   "
                   class="feedback-icon"
                 >
@@ -225,12 +256,13 @@ function restartQuiz() {
                 <span
                   v-if="
                     selectedAnswer === option &&
-                    option !== questions[currentQuestion].correct
+                    option !== questions[currentQuestion].answer
                   "
                   class="feedback-icon"
                 >
                   ❌
                 </span>
+
               </button>
 
             </div>
@@ -246,11 +278,7 @@ function restartQuiz() {
 
         <div v-if="finished" class="result">
 
-          <div class="victory-glow"></div>
-
-          <div class="trophy">
-            🏆
-          </div>
+          <div class="trophy">🏆</div>
 
           <h2 class="victory-title">
             Expedição Concluída!
@@ -264,31 +292,24 @@ function restartQuiz() {
             perguntas.
           </p>
 
-          <!-- SCORE RANK -->
           <div class="rank-box">
-
             <span v-if="score === questions.length">
               👑 Mestre dos Dinossauros
             </span>
 
-            <span
-              v-else-if="score >= questions.length / 2"
-            >
+            <span v-else-if="score >= questions.length / 2">
               🦴 Explorador Experiente
             </span>
 
             <span v-else>
               🌋 Aprendiz Jurássico
             </span>
-
           </div>
 
-          <!-- COINS -->
           <div class="coins-box">
 
             <img
               :src="moedaDoSite"
-              alt="Moeda"
               class="coin-img"
             />
 
@@ -299,24 +320,12 @@ function restartQuiz() {
 
           </div>
 
-          <p
-            v-if="loadingReward"
-            class="saving"
+          <button
+            class="restart-btn"
+            @click="restartQuiz"
           >
-            Salvando recompensas no cofre...
-          </p>
-
-          <!-- ACTIONS -->
-          <div class="actions">
-
-            <button
-              class="restart-btn"
-              @click="restartQuiz"
-            >
-              🔄 Jogar Novamente
-            </button>
-
-          </div>
+            🔄 Jogar Novamente
+          </button>
 
         </div>
 
