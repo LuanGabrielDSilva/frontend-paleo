@@ -182,7 +182,7 @@ const hasFilters = computed(
    MODAL — NOVO VISUAL
 ========================= */
 const selectedAnimal = ref<any | null>(null);
-const activeTab = ref<"ficha" | "habitat" | "descoberta">("ficha");
+const activeTab = ref<"ficha" | "habitat" | "descoberta" | "cadeia">("ficha");
 
 const openAnimal = (animal: any) => {
   selectedAnimal.value = animal;
@@ -508,6 +508,13 @@ const eraOf = (a: any) =>
                 >
                   ✦ Descoberta
                 </button>
+
+                <button
+                  :class="['xtab', { active: activeTab === 'cadeia' }]"
+                  @click="activeTab = 'cadeia'"
+                >
+                  🦴 Cadeia Alimentar
+                </button>
               </nav>
 
               <div class="xtab-body">
@@ -589,7 +596,108 @@ const eraOf = (a: any) =>
                     </div>
                   </div>
                 </div>
+                
+                <!-- CADEIA ALIMENTAR -->
+<div
+  v-else-if="activeTab === 'cadeia'"
+  class="tab-pane"
+>
 
+  <div class="food-chain-modern">
+
+    <!-- PREDADORES -->
+    <div class="chain-section">
+
+      <h3 class="chain-title danger">
+        ☠ Predadores
+      </h3>
+
+      <div
+        v-if="
+          selectedAnimal.predatorRelations &&
+          selectedAnimal.predatorRelations.length
+        "
+        class="chain-grid"
+      >
+
+        <div
+          v-for="relation in selectedAnimal.predatorRelations"
+          :key="relation.predator.id"
+          class="chain-card predator-card"
+        >
+          <img
+            :src="relation.predator.image"
+            :alt="relation.predator.name"
+          />
+
+          <div class="chain-info">
+            <strong>
+              {{ relation.predator.name }}
+            </strong>
+
+            <span>
+              Caçava {{ selectedAnimal.name }}
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <div v-else class="chain-empty">
+        Nenhum predador catalogado.
+      </div>
+
+    </div>
+
+   
+
+    <!-- PRESAS -->
+    <div class="chain-section">
+
+      <h3 class="chain-title success">
+        🍖 Presas
+      </h3>
+
+      <div
+        v-if="
+          selectedAnimal.preyRelations &&
+          selectedAnimal.preyRelations.length
+        "
+        class="chain-grid"
+      >
+
+        <div
+          v-for="relation in selectedAnimal.preyRelations"
+          :key="relation.prey.id"
+          class="chain-card prey-card"
+        >
+          <img
+            :src="relation.prey.image"
+            :alt="relation.prey.name"
+          />
+
+          <div class="chain-info">
+            <strong>
+              {{ relation.prey.name }}
+            </strong>
+
+            <span>
+              Era caçado por {{ selectedAnimal.name }}
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <div v-else class="chain-empty">
+        Nenhuma presa catalogada.
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
                 <!-- DESCOBERTA -->
                 <div v-else class="tab-pane">
                   <div class="discover">
@@ -1070,10 +1178,13 @@ const eraOf = (a: any) =>
 
 .xmodal {
   position: relative;
+
   width: min(100%, 1100px);
-  max-height: 92vh;
-  overflow: hidden;
+
+  height: min(92vh, 950px);
+
   border-radius: 24px;
+
   background:
     repeating-linear-gradient(
       0deg,
@@ -1083,12 +1194,30 @@ const eraOf = (a: any) =>
       transparent 4px
     ),
     linear-gradient(180deg, #1c140a 0%, #0c0907 100%);
+
   border: 1px solid rgba(212,175,55,0.28);
+
   box-shadow:
     0 50px 120px rgba(0,0,0,0.95),
     0 0 80px rgba(212,175,55,0.08),
     inset 0 0 100px rgba(0,0,0,0.4);
+
   animation: xmodalIn .45s cubic-bezier(.2,.9,.25,1);
+
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.xmodal-grid {
+  display: grid;
+
+  grid-template-columns: 0.95fr 1.1fr;
+
+  height: 100%;
+
+  overflow: hidden;
 }
 
 @keyframes xmodalIn {
@@ -1251,8 +1380,43 @@ const eraOf = (a: any) =>
 .xinfo {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+
+  min-height: 0;
+
+  overflow: hidden;
+
   padding: 36px 38px 24px;
+}
+
+.xtab-body {
+  flex: 1;
+
+  min-height: 0;
+
+  overflow-y: auto;
+
+  padding: 22px 4px 12px 0;
+
+  animation: fadeUp 0.35s ease;
+}
+
+/* scrollbar */
+.xtab-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.xtab-body::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+  border-radius: 999px;
+}
+
+.xtab-body::-webkit-scrollbar-thumb {
+  background: rgba(212,175,55,0.45);
+  border-radius: 999px;
+}
+
+.xtab-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(212,175,55,0.7);
 }
 
 .xhead { padding-bottom: 22px; }
@@ -1378,14 +1542,49 @@ const eraOf = (a: any) =>
 /* SCROLL BLOCK */
 .scroll-block {
   position: relative;
+
   padding: 22px;
+
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(212,175,55,0.06), rgba(212,175,55,0.02));
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(212,175,55,0.06),
+      rgba(212,175,55,0.02)
+    );
+
   border-left: 3px solid #d4af37;
+
   border-top: 1px solid rgba(212,175,55,0.18);
   border-right: 1px solid rgba(212,175,55,0.1);
   border-bottom: 1px solid rgba(212,175,55,0.1);
+
+  max-height: 260px;
+
+  overflow-y: auto;
+
+  padding-right: 12px;
 }
+
+.scroll-block::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-block::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+  border-radius: 999px;
+}
+
+.scroll-block::-webkit-scrollbar-thumb {
+  background: rgba(212,175,55,0.5);
+  border-radius: 999px;
+}
+
+.scroll-block::-webkit-scrollbar-thumb:hover {
+  background: rgba(212,175,55,0.8);
+}
+
 .scroll-block h4 {
   margin: 0 0 10px;
   color: #f1d98a;
@@ -1551,4 +1750,224 @@ const eraOf = (a: any) =>
 .favorite-btn:active {
   transform: scale(.92);
 }
+
+/* =========================
+   CADEIA ALIMENTAR
+========================= */
+
+.food-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.food-level {
+  background:
+    linear-gradient(145deg, #1c140c, #120d08);
+
+  border:
+    1px solid #3f311d;
+
+  border-radius: 14px;
+
+  padding: 18px;
+
+  position: relative;
+
+  overflow: hidden;
+}
+
+.food-level::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(212,175,55,0.08),
+      transparent 60%
+    );
+
+  pointer-events: none;
+}
+
+.level-title {
+  display: block;
+
+  color: #d4af37;
+
+  font-family: 'Cinzel', serif;
+
+  font-size: 0.95rem;
+
+  letter-spacing: 1px;
+
+  margin-bottom: 10px;
+
+  text-transform: uppercase;
+}
+
+.food-level h3 {
+  margin: 0 0 8px;
+
+  font-size: 1.5rem;
+
+  color: #f5e6c8;
+
+  font-family: 'Cinzel', serif;
+}
+
+.food-level p {
+  margin: 0;
+
+  color: #d6c7aa;
+
+  line-height: 1.6;
+}
+
+.chain-arrow {
+  text-align: center;
+
+  color: #d4af37;
+
+  font-size: 1.5rem;
+
+  opacity: 0.8;
+}
+
+.producer {
+  border-color: #3d5c2d;
+}
+
+.consumer {
+  border-color: #7a6a2f;
+}
+
+.predator {
+  border-color: #8b2d2d;
+}
+
+.decomposer {
+  border-color: #5a4a39;
+}
+
+.food-chain-modern{
+  display:flex;
+  flex-direction:column;
+  gap:28px;
+}
+
+.chain-section{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.chain-title{
+  font-size:1.1rem;
+  font-weight:700;
+  letter-spacing:.5px;
+}
+
+.chain-title.danger{
+  color:#ff8c8c;
+}
+
+.chain-title.success{
+  color:#8cffb1;
+}
+
+.chain-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px;
+}
+
+.chain-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+
+  padding:14px;
+  border-radius:18px;
+
+  background:rgba(255,255,255,.04);
+
+  border:1px solid rgba(255,255,255,.08);
+
+  transition:.25s;
+}
+
+.chain-card:hover{
+  transform:translateY(-4px);
+  border-color:rgba(255,255,255,.18);
+}
+
+.chain-card img{
+  width:72px;
+  height:72px;
+  object-fit:cover;
+  border-radius:14px;
+}
+
+.chain-info{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.chain-info strong{
+  font-size:1rem;
+}
+
+.chain-info span{
+  opacity:.7;
+  font-size:.9rem;
+}
+
+.chain-center{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  gap:12px;
+
+  padding:22px;
+
+  border-radius:24px;
+
+  background:linear-gradient(
+    135deg,
+    rgba(255,255,255,.05),
+    rgba(255,255,255,.02)
+  );
+
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.center-circle{
+  width:160px;
+  height:160px;
+
+  border-radius:50%;
+  overflow:hidden;
+
+  border:3px solid rgba(255,255,255,.12);
+}
+
+.center-circle img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.chain-empty{
+  opacity:.6;
+  padding:12px 0;
+  font-style:italic;
+}
+
 </style>

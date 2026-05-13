@@ -14,9 +14,9 @@ export const ShopService = {
     return data;
   },
 
-  async addToCart(productId: string) {
+  async addToCart(product_id: string) {
     const { data } = await api.post("/cart/add", {
-      productId,
+      product_id,
       quantity: 1
     });
     return data;

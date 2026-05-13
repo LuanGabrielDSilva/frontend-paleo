@@ -28,7 +28,7 @@ const ordemPaleozoico = [
 const dietas = [
   "Carnívoro", "Herbívoro", "Onívoro", "Insetívoro", "Piscívoro",
   "Necrófago", "Detritívoro", "Filtrador", "Nectarívoro",
-  "Hematófago", "Fungívoro", "Micrófago"
+  "Hematófago", "Fungívoro", "Micrófago", "Autótrofa"
 ];
 
 const newAnimal = ref({

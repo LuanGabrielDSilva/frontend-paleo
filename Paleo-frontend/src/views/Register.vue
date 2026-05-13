@@ -9,41 +9,179 @@ const router = useRouter();
 const name = ref("");
 const email = ref("");
 const password = ref("");
+
+const phone = ref("");
+const cpf = ref("");
+const birthDate = ref("");
+
 const error = ref("");
 const loading = ref(false);
 
-const formValido = computed(() => {
-  return (
-    name.value.trim().length >= 3 &&
-    email.value.includes("@") &&
-    email.value.includes(".") &&
-    password.value.length >= 6
+/* =========================
+   FORMAT PHONE
+========================= */
+function formatPhone(value: string) {
+
+  let numbers = value.replace(/\D/g, "");
+
+  // máximo 11 números
+  numbers = numbers.slice(0, 11);
+
+  if (numbers.length <= 2) {
+    phone.value = numbers;
+    return;
+  }
+
+  if (numbers.length <= 7) {
+
+    phone.value = numbers.replace(
+      /(\d{2})(\d+)/,
+      "($1) $2"
+    );
+
+    return;
+  }
+
+  phone.value = numbers.replace(
+    /(\d{2})(\d{5})(\d+)/,
+    "($1) $2-$3"
   );
+}
+
+/* =========================
+   FORMAT CPF
+========================= */
+function formatCpf(value: string) {
+
+  let numbers = value.replace(/\D/g, "");
+
+  // máximo 11 números
+  numbers = numbers.slice(0, 11);
+
+  numbers = numbers.replace(
+    /(\d{3})(\d)/,
+    "$1.$2"
+  );
+
+  numbers = numbers.replace(
+    /(\d{3})(\d)/,
+    "$1.$2"
+  );
+
+  numbers = numbers.replace(
+    /(\d{3})(\d{1,2})$/,
+    "$1-$2"
+  );
+
+  cpf.value = numbers;
+}
+
+/* =========================
+   AGE VALIDATION
+========================= */
+const isOldEnough = computed(() => {
+
+  if (!birthDate.value) return false;
+
+  const today = new Date();
+
+  const birth = new Date(birthDate.value);
+
+  let age =
+    today.getFullYear() -
+    birth.getFullYear();
+
+  const month =
+    today.getMonth() -
+    birth.getMonth();
+
+  if (
+    month < 0 ||
+    (month === 0 &&
+      today.getDate() < birth.getDate())
+  ) {
+    age--;
+  }
+
+  return age >= 14;
 });
 
+/* =========================
+   FORM VALIDATION
+========================= */
+const formValido = computed(() => {
+
+  const cpfNumbers =
+    cpf.value.replace(/\D/g, "");
+
+  const phoneNumbers =
+    phone.value.replace(/\D/g, "");
+
+  return (
+
+    name.value.trim().length >= 3 &&
+
+    email.value.includes("@") &&
+    email.value.includes(".") &&
+
+    password.value.length >= 6 &&
+
+    phoneNumbers.length === 11 &&
+
+    cpfNumbers.length === 11 &&
+
+    isOldEnough.value
+
+  );
+
+});
+
+/* =========================
+   REGISTER
+========================= */
 async function handleRegister() {
-  if (!formValido.value || loading.value) return;
+
+  if (!formValido.value || loading.value)
+    return;
 
   error.value = "";
   loading.value = true;
 
   try {
+
     await api.post("/users", {
+
       name: name.value.trim(),
-      email: email.value.trim().toLowerCase(),
+
+      email: email.value
+        .trim()
+        .toLowerCase(),
+
       password: password.value,
+
+      phone: phone.value,
+
+      cpf: cpf.value,
+
+      birthDate: birthDate.value
+
     });
 
-    // Sucesso - redireciona para login
     router.push("/");
+
   } catch (err: any) {
+
     error.value =
       err.response?.data?.error ||
       err.response?.data?.message ||
-      "Erro ao realizar o cadastro. Tente novamente.";
+      "Erro ao realizar o cadastro.";
+
   } finally {
+
     loading.value = false;
+
   }
+
 }
 </script>
 
@@ -78,6 +216,52 @@ async function handleRegister() {
             autocomplete="email"
             :disabled="loading"
           />
+        </div>
+
+        <div class="field">
+
+          <label>Número</label>
+
+          <input
+            :value="phone"
+            @input="formatPhone(($event.target as HTMLInputElement).value)"
+            type="text"
+            placeholder="(31) 99999-9999"
+            maxlength="15"
+          />
+
+        </div>
+
+        <div class="field">
+
+          <label>CPF</label>
+
+          <input
+            :value="cpf"
+            @input="formatCpf(($event.target as HTMLInputElement).value)"
+            type="text"
+            placeholder="000.000.000-00"
+            maxlength="14"
+          />
+
+        </div>
+
+        <div class="field">
+
+          <label>Data de nascimento</label>
+
+          <input
+            v-model="birthDate"
+            type="date"
+          />
+
+          <span
+            v-if="birthDate && !isOldEnough"
+            class="age-error"
+          >
+            Você precisa ter pelo menos 14 anos.
+          </span>
+
         </div>
 
         <div class="field">
@@ -280,4 +464,11 @@ input:focus {
     display: none;
   }
 }
+
+.age-error {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
 </style>

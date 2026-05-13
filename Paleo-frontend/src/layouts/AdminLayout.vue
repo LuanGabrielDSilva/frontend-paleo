@@ -12,6 +12,7 @@
         <router-link to="/admin/eras">Eras</router-link>
         <router-link to="/admin/periodos">Períodos</router-link>
         <router-link to="/admin/animals">Animais</router-link>
+        <router-link to="/admin/products">Produtos</router-link>
       </nav>
 
       <div class="divider"></div>

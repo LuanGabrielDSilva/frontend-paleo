@@ -3,9 +3,16 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { upgrades as upgradesData } from "@/data/upgrades";
 
 /* =========================================================
-   SAVE SYSTEM
+   USER / SAVE SYSTEM (FIX PRINCIPAL)
 ========================================================= */
-const SAVE_KEY = "paleo_clicker_save";
+
+// 👉 aqui você deve trocar pelo ID real do seu sistema de login
+const userId = ref<string>("guest");
+
+/**
+ * Gera uma chave única por usuário
+ */
+const getSaveKey = () => `paleo_clicker_save_${userId.value}`;
 
 /* =========================================================
    STATE
@@ -35,7 +42,7 @@ const floatingTexts = ref<
    LOAD GAME
 ========================================================= */
 const loadGame = () => {
-  const data = localStorage.getItem(SAVE_KEY);
+  const data = localStorage.getItem(getSaveKey());
 
   if (!data) return;
 
@@ -71,10 +78,10 @@ const saveGame = () => {
     })),
   };
 
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  localStorage.setItem(getSaveKey(), JSON.stringify(data));
 };
 
-/* Auto-save (qualquer mudança importante) */
+/* Auto-save */
 watch(
   [coins, rebirths, upgrades],
   () => {
@@ -150,19 +157,7 @@ const formatNumber = (value: number | undefined | null) => {
 
   if (value < 1000) return Math.floor(value).toString();
 
-  const units = [
-    "K",
-    "M",
-    "B",
-    "T",
-    "Qa",
-    "Qi",
-    "Sx",
-    "Sp",
-    "Oc",
-    "No",
-    "Dc",
-  ];
+  const units = ["K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 
   let unitIndex = -1;
 

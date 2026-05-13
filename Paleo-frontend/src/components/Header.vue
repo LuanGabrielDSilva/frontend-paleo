@@ -11,6 +11,7 @@
       <router-link to="/game">Jogo</router-link>
       <RouterLink to="/wallet">Carteira</RouterLink>
       <router-link to="/shop">Loja</router-link>
+      <router-link to="/cart" class="cart-icon">🛒 Carrinho</router-link>
     </nav>
 
     <!-- Perfil do Usuário -->
@@ -58,4 +59,11 @@ import UserProfile from '@/components/UserProfile.vue'
   color: #d4af37;
   border-bottom: 2px solid #d4af37;
 }
+
+.cart-icon {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(212,175,55,0.1);
+}
+
 </style>

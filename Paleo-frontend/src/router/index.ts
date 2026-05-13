@@ -24,6 +24,8 @@ import Shop from "../views/shop/Shop.vue";
 import Inventory from "../views/shop/Inventory.vue";
 import Checkout from "../views/shop/Checkout.vue";
 
+import Cart from "../views/shop/Cart.vue";
+
 /* ================= GAMES ================= */
 import DinoClickerView from "../views/games/DinoClickerView.vue";
 import MemoryGame from "../views/games/MemoryGame.vue";
@@ -40,6 +42,8 @@ import AdminEras from "../views/admin/AdminEras.vue";
 import AdminAnimals from "../views/admin/AdminAnimals.vue";
 import AdminUsers from "../views/admin/AdminUsers.vue";
 import AdminPeriodos from "../views/admin/AdminPeriodos.vue";
+import AdminProducts from "../views/admin/AdminProducts.vue";
+import AdminOrders from "../views/admin/AdminOrders.vue";
 
 /* ================= ROUTES ================= */
 
@@ -74,11 +78,14 @@ const routes = [
       { path: "users", component: Users },
       { path: "game", component: Game },
       { path: "wallet", component: WalletView },
+      
 
       /* 🎯 SHOP AQUI DENTRO DO LAYOUT */
       { path: "shop", component: Shop },
       { path: "inventory", component: Inventory },
       { path: "checkout", component: Checkout },
+      { path: "cart", component: Cart },
+      { path: "shop/:id", component: () => import("../views/shop/ProductDetails.vue") },
 
       /* GAMES */
       { path: "games/dino-clicker", component: DinoClickerView },
@@ -102,6 +109,8 @@ const routes = [
       { path: "animals", component: AdminAnimals },
       { path: "users", component: AdminUsers },
       { path: "periodos", component: AdminPeriodos },
+      { path: "products", component: AdminProducts },
+      { path: "orders", component: AdminOrders },
     ],
   },
 ];

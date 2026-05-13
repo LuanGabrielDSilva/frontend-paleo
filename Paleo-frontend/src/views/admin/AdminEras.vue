@@ -2,10 +2,17 @@
 import { ref, onMounted } from "vue";
 import api from "../../services/api";
 
+/* =========================
+   STATE
+========================= */
 const eras = ref<any[]>([]);
 const selected = ref<any | null>(null);
 
-const newEra = ref({ name: "", description: "", image: "" });
+const newEra = ref({
+  name: "",
+  description: "",
+  image: ""
+});
 
 const deleteModal = ref({
   isOpen: false,
@@ -14,10 +21,12 @@ const deleteModal = ref({
   isDeleting: false
 });
 
+/* =========================
+   LOAD ERAS
+========================= */
 async function load() {
   const res = await api.get("/eras");
 
-  // 🔥 ORDENAÇÃO DAS ERAS AQUI
   const order = ["Paleozoico", "Mesozoico", "Cenozoico"];
 
   eras.value = res.data.sort((a: any, b: any) => {
@@ -27,12 +36,24 @@ async function load() {
 
 onMounted(load);
 
+/* =========================
+   CREATE ERA
+========================= */
 async function create() {
   await api.post("/eras", newEra.value);
-  newEra.value = { name: "", description: "", image: "" };
+
+  newEra.value = {
+    name: "",
+    description: "",
+    image: ""
+  };
+
   await load();
 }
 
+/* =========================
+   DELETE ERA
+========================= */
 function openDeleteModal(id: string, name: string) {
   deleteModal.value = {
     isOpen: true,
@@ -44,6 +65,7 @@ function openDeleteModal(id: string, name: string) {
 
 function closeDeleteModal() {
   deleteModal.value.isOpen = false;
+
   setTimeout(() => {
     deleteModal.value.eraId = null;
     deleteModal.value.eraName = "";
@@ -58,7 +80,11 @@ async function confirmDelete() {
 
   try {
     await api.delete(`/eras/${deleteModal.value.eraId}`);
-    eras.value = eras.value.filter(e => e.id !== deleteModal.value.eraId);
+
+    eras.value = eras.value.filter(
+      (e) => e.id !== deleteModal.value.eraId
+    );
+
     closeDeleteModal();
   } catch (err) {
     console.error(err);
@@ -66,12 +92,18 @@ async function confirmDelete() {
   }
 }
 
+/* =========================
+   EDIT ERA
+========================= */
 function openEdit(era: any) {
   selected.value = { ...era };
 }
 
 async function saveEdit() {
+  if (!selected.value?.id) return;
+
   await api.put(`/eras/${selected.value.id}`, selected.value);
+
   selected.value = null;
   await load();
 }
